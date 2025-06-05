@@ -29,6 +29,11 @@ const App = (): React.ReactElement => {
               title: 'Gift Cards',
               gestureEnabled: false,
               swipeEnabled: false,
+              headerStyle: {
+                elevation: 0,
+                shadowOpacity: 0,
+                borderBottomWidth: 0,
+              },
               headerRight: () => (
                 <TouchableOpacity
                   onPress={() => navigation.navigate('GiftCardForm')}
@@ -48,6 +53,11 @@ const App = (): React.ReactElement => {
               swipeEnabled: false,
               headerTintColor: 'black',
               headerBackTitle: '',
+              headerStyle: {
+                elevation: 0,
+                shadowOpacity: 0,
+                borderBottomWidth: 0,
+              },
             } as StackNavigationOptions}
           />
         </Stack.Navigator>

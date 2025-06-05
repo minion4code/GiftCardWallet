@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
-  Text,
   TextInput,
-  Button,
   StyleSheet,
   View,
+  ScrollView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
+import styled from 'styled-components/native';
 import { v4 as uuidv4 } from 'uuid';
+import BaseButton from '../components/BaseButton';
+import CardLabel from '../components/CardLabel';
 import { addGiftCard } from '../store/slices/giftCardSlice';
+
+const CardInfoSection = styled.View`
+  gap: 8px;
+`;
 
 const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
   const { card, readonly } = route.params || {};
@@ -40,25 +50,55 @@ const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.mainContainer}>
-        <Text style={styles.label}>Card Name</Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          editable={!readonly}
-        />
-        <Text style={styles.label}>Card Code</Text>
-        <TextInput
-          value={code}
-          onChangeText={setCode}
-          style={styles.input}
-          editable={!readonly}
-        />
-        {!readonly && (
-          <Button title="Add Card" onPress={handleAdd} />
-        )}
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={80}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={styles.mainContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={{ flex: 1, gap: 12 }}>
+              <CardInfoSection>
+                <CardLabel title="Card Name" />
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  style={styles.cardInfoInput}
+                  editable={!readonly}
+                  placeholder="Enter card name"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                />
+              </CardInfoSection>
+              <CardInfoSection>
+                <CardLabel title="Card Code" />
+                <TextInput
+                  value={code}
+                  onChangeText={setCode}
+                  style={styles.cardInfoInput}
+                  editable={!readonly}
+                  placeholder="Enter card code"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  keyboardType="numeric"
+                />
+              </CardInfoSection>
+            </View>
+            {!readonly && (
+              <BaseButton
+                title="Save"
+                onPress={handleAdd}
+                disabled={!name || !code}
+              />
+            )}
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -68,17 +108,19 @@ export default GiftCardFormScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   mainContainer: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
+    gap: 24,
+    justifyContent: 'space-between',
   },
-  label: { marginBottom: 8 },
-  input: {
+  cardInfoInput: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
+    fontSize: 16,
     padding: 8,
-    marginBottom: 16,
   },
 });
