@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
+  Alert,
   SafeAreaView,
   TextInput,
   StyleSheet,
@@ -13,9 +14,11 @@ import {
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components/native';
 import { v4 as uuidv4 } from 'uuid';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BaseButton from '../components/BaseButton';
 import CardLabel from '../components/CardLabel';
 import { addGiftCard } from '../store/slices/giftCardSlice';
+import { handleError, ErrorType } from '../utils/errorHandling';
 
 const CardInfoSection = styled.View`
   gap: 8px;
@@ -26,6 +29,8 @@ const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
 
   const [name, setName] = useState(card?.name || '');
   const [code, setCode] = useState(card?.code || '');
+  const [isLoading, setIsLoading] = useState(false);
+
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -34,18 +39,48 @@ const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
     });
   }, [readonly, navigation]);
 
-  const handleAdd = () => {
-    if (!name || !code) return;
+  const validateInputs = useCallback(() => {
+    if (!name.trim()) {
+      handleError(new Error('Name is required'), 'VALIDATION_ERROR' as ErrorType, 'Please enter a card name.');
+      return false;
+    }
+    if (!code.trim()) {
+      handleError(new Error('Code is required'), 'VALIDATION_ERROR' as ErrorType, 'Please enter a card code.');
+      return false;
+    }
+    return true;
+  }, [name, code]);
 
-    dispatch(
-      addGiftCard({
+  const onSave = async () => {
+    if (!validateInputs()) {
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const newCard = {
         id: uuidv4(),
-        name,
-        code,
-      })
-    );
+        name: name.trim(),
+        code: code.trim(),
+      };
 
-    navigation.goBack();
+      dispatch(addGiftCard(newCard));
+
+      const existingCards = await AsyncStorage.getItem('@giftCards');
+      const cards = existingCards ? JSON.parse(existingCards) : [];
+      await AsyncStorage.setItem('@giftCards', JSON.stringify([...cards, newCard]));
+
+      Alert.alert('Success', 'Gift card has been saved.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error) {
+      handleError(error, 'STORAGE_ERROR' as ErrorType, 'Failed to save gift card. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -92,8 +127,8 @@ const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
             {!readonly && (
               <BaseButton
                 title="Save"
-                onPress={handleAdd}
-                disabled={!name || !code}
+                onPress={onSave}
+                disabled={!name || !code || isLoading}
               />
             )}
           </ScrollView>

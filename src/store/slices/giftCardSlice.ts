@@ -32,11 +32,9 @@ const giftCardSlice = createSlice({
     },
     addGiftCard: (state, action: PayloadAction<GiftCard>) => {
       state.cards.push(action.payload);
-      persistCards(state.cards);
     },
     removeCard: (state, action: PayloadAction<string>) => {
       state.cards = state.cards.filter(card => card.id !== action.payload);
-      persistCards(state.cards);
     },
   },
 });

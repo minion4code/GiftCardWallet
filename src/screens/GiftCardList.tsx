@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, memo } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -13,6 +13,32 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { setGiftCards, removeCard } from '../store/slices/giftCardSlice';
+import { handleError, ErrorType } from '../utils/errorHandling';
+
+const ITEM_HEIGHT = 76; // height of rowFront + marginBottom
+
+const GiftCardItem = memo(({ item, onPress }: { item: any; onPress: (item: any) => void }) => (
+  <TouchableOpacity
+    activeOpacity={1}
+    onPress={() => onPress(item)}
+  >
+    <View style={styles.rowFront}>
+      <Text style={styles.cardText}>{item.name} - {item.code}</Text>
+    </View>
+  </TouchableOpacity>
+));
+
+const HiddenItem = memo(({ item, onDelete }: { item: any; onDelete: (id: string) => void }) => (
+  <View style={styles.rowBack}>
+    <TouchableOpacity
+      activeOpacity={0.8}
+      style={styles.deleteButton}
+      onPress={() => onDelete(item.id)}
+    >
+      <Ionicons name="trash-outline" size={24} color="#fff" />
+    </TouchableOpacity>
+  </View>
+));
 
 const GiftCardListScreen = ({ navigation }: any) => {
   const giftCards = useSelector((state: RootState) => state.giftCard.cards);
@@ -27,53 +53,57 @@ const GiftCardListScreen = ({ navigation }: any) => {
           dispatch(setGiftCards(parsed));
         }
       } catch (error) {
-        console.error('Failed to load gift cards:', error);
+        handleError(error, 'STORAGE_ERROR' as ErrorType, 'Failed to load gift cards. Please try again.');
       }
     };
-  
+
     loadGiftCards();
   }, [dispatch]);
 
-  const confirmDelete = (id: string) => {
-    Alert.alert('Delete', 'Are you sure you want to delete this card?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => dispatch(removeCard(id)),
-      },
-    ]);
-  };
+  const confirmDelete = useCallback((id: string) => {
+    Alert.alert(
+      'Delete Gift Card',
+      'Are you sure you want to delete this card?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              dispatch(removeCard(id));
+              // Update AsyncStorage after successful deletion
+              const updatedCards = giftCards.filter(card => card.id !== id);
+              await AsyncStorage.setItem('@giftCards', JSON.stringify(updatedCards));
+            } catch (error) {
+              handleError(error, 'STORAGE_ERROR' as ErrorType, 'Failed to delete gift card. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  }, [dispatch, giftCards]);
 
-  const handleCardPress = (card: any) => {
+  const handleCardPress = useCallback((card: any) => {
     navigation.navigate('GiftCardForm', {
       card,
       readonly: true,
     });
-  };
+  }, [navigation]);
 
-  const renderItem = ({ item }: any) => (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPress={() => handleCardPress(item)}
-    >
-      <View style={styles.rowFront}>
-        <Text style={styles.cardText}>{item.name} - {item.code}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const getItemLayout = (data: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  });
 
-  const renderHiddenItem = ({ item }: any) => (
-    <View style={styles.rowBack}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.deleteButton}
-        onPress={() => confirmDelete(item.id)}
-      >
-        <Ionicons name="trash-outline" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = useCallback(({ item }: any) => (
+    <GiftCardItem item={item} onPress={handleCardPress} />
+  ), [handleCardPress]);
+
+  const renderHiddenItem = useCallback(({ item }: any) => (
+    <HiddenItem item={item} onDelete={confirmDelete} />
+  ), [confirmDelete]);
 
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
@@ -94,6 +124,7 @@ const GiftCardListScreen = ({ navigation }: any) => {
           disableRightSwipe
           contentContainerStyle={{ paddingBottom: 30 }}
           ListEmptyComponent={renderEmptyList}
+          getItemLayout={getItemLayout}
         />
       </View>
     </SafeAreaView>
