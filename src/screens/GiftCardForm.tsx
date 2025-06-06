@@ -126,6 +126,7 @@ const GiftCardFormScreen = ({ navigation, route }: any): React.ReactElement => {
             </View>
             {!readonly && (
               <BaseButton
+                testID="save-button"
                 title="Save"
                 onPress={onSave}
                 disabled={!name || !code || isLoading}

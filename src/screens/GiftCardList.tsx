@@ -28,9 +28,10 @@ const GiftCardItem = memo(({ item, onPress }: { item: any; onPress: (item: any) 
   </TouchableOpacity>
 ));
 
-const HiddenItem = memo(({ item, onDelete }: { item: any; onDelete: (id: string) => void }) => (
+export const HiddenItem = memo(({ item, onDelete }: { item: any; onDelete: (id: string) => void }) => (
   <View style={styles.rowBack}>
     <TouchableOpacity
+      accessibilityRole="button"
       activeOpacity={0.8}
       style={styles.deleteButton}
       onPress={() => onDelete(item.id)}
